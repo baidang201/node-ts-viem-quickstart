@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model transactions {
+  origin         String
+  request_number Int
+  quote_number   Int
+  amount         Int
+  destination    String
+  expiry         Int
+  fulfilled      Boolean @default(false)
+
+  @@id([origin, request_number, quote_number], map: "transactions_pk")
+}

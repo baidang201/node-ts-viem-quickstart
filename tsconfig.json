@@ -1,4 +1,12 @@
 {
+  
+  "compilerOptions": { "outDir": "dist" },
+  "lib": ["es5", "es6"],
+  "target": "es5",
+  "module": "commonjs",
+  "moduleResolution": "node",
+  "emitDecoratorMetadata": true,
+  "experimentalDecorators": true,
+  "strictPropertyInitialization": false,
   "extends": "@tsconfig/node20/tsconfig.json",
-  "compilerOptions": { "outDir": "dist" }
 }
