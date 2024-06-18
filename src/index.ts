@@ -2,6 +2,8 @@ import mempoolJS from '@mempool/mempool.js';
 import { Tx } from '@mempool/mempool.js/lib/interfaces/bitcoin/transactions';
 
 import { PrismaClient } from '@prisma/client';
+
+import { getEscrowCount, getEscrow, fulfillRequest, getRequest } from './eth';
 const prisma = new PrismaClient();
 
 const {
@@ -11,56 +13,56 @@ const {
   network: 'testnet',
 });
 
-const ws = websocket.initServer({
-  options: ['blocks'],
-});
+const ws = websocket.wsInit();
 
-ws.on('message', async function incoming(data) {
+ws.on('message', async function incoming(data: any) {
   const res = JSON.parse(data.toString());
   if (res.block) {
-    console.log('@@@ res.block \n');
+    console.log('@@@ res.block \n', res.block);
     console.log(res.block);
 
     const blockStatus = await blocks.getBlockStatus({ hash: res.block.id });
     console.log('@@@ status', blockStatus);
 
     const blockTxs = await blocks.getBlockTxs({ hash: res.block.id });
-    console.log('@@@ blockTxs0', blockTxs);
+    console.log('@@@ blockTxs', blockTxs);
+    console.log('@@@ blockTxs JSON', JSON.stringify(blockTxs));
 
-    // todo get mapping(uint256 => Escrow) escrows; from eth
-
-    for (var tx in blockTxs) {
+    for (const tx of blockTxs) {
       if (1 === tx.vin.length) {
-        let vin = tx.vin[0];
+        const vin = tx.vin[0];
+        for (const item of tx.vout) {
+          const origin = vin.prevout.scriptpubkey;
+          const destination = item.scriptpubkey;
+          const amount = item.value;
 
-        for (var item in tx.vout) {
-          let origin = vin.prevout.scriptpubkey;
-          let destination = item.scriptpubkey;
-          let amount = item.value;
+          const count = await getEscrowCount();
+          for (let index = 0; index < count; index++) {
+            const escrow = await getEscrow(BigInt(index));
 
-          // todo check "origin to destination with the specified amount" from eth data
-          await prisma.transactions.create({
-            data: {
-              origin: origin,
-              request_number: 1,
-              quote_number: 2,
-              amount: amount,
-              destination: destination,
-              expiry: 100,
-              fulfilled: false,
-            },
-          });
+            const request = await getRequest(escrow.originatorBitcoinAddress, escrow.requestNumber);
 
-          // const allUsers = await prisma.transactions.findMany({
-          //   select: {
-          //     origin: true,
-          //     destination: true,
-          //   },
-          // });
+            if (
+              escrow.originatorBitcoinAddress === origin &&
+              escrow.destinationBitcoinAddress === destination &&
+              request.amount === BigInt(amount)
+              //todo blocktimestamp less than request expiry
+            ) {
+              await fulfillRequest(BigInt(index));
 
-          //console.dir(allUsers, { depth: null });
-
-          // todo  update contract data
+              await prisma.transactions.create({
+                data: {
+                  origin: escrow.originatorBitcoinAddress,
+                  request_number: Number(escrow.requestNumber),
+                  quote_number: Number(escrow.quoteNumber),
+                  amount: Number(amount),
+                  destination: escrow.destinationBitcoinAddress,
+                  expiry: Number(request.expiry),
+                  fulfilled: true,
+                },
+              });
+            }
+          }
         }
       }
     }

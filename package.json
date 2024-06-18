@@ -24,7 +24,7 @@
     "viem": "^2.7.0"
   },
   "dependencies": {
-    "@mempool/mempool.js": "^2.3.0",
+    "@mempool/mempool.js": "github:baidang201/mempool.js#b6e31e7b8765062c7b35512725b30d7fc5662c18",
     "@prisma/client": "^5.15.0",
     "@types/ws": "^8.5.10",
     "pg": "^8.12.0",
