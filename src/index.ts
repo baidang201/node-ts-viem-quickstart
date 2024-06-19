@@ -31,35 +31,37 @@ ws.on('message', async function incoming(data: any) {
       if (1 === tx.vin.length) {
         const vin = tx.vin[0];
         for (const item of tx.vout) {
-          const origin = vin.prevout.scriptpubkey;
-          const destination = item.scriptpubkey;
-          const amount = item.value;
+          if (vin.prevout) {
+            const origin = vin.prevout.scriptpubkey;
+            const destination = item.scriptpubkey;
+            const amount = item.value;
 
-          const count = await getEscrowCount();
-          for (let index = 0; index < count; index++) {
-            const escrow = await getEscrow(BigInt(index));
+            const count = await getEscrowCount();
+            for (let index = 0; index < count; index++) {
+              const escrow = await getEscrow(BigInt(index));
 
-            const request = await getRequest(escrow.originatorBitcoinAddress, escrow.requestNumber);
+              const request = await getRequest(escrow.originatorBitcoinAddress, escrow.requestNumber);
 
-            if (
-              escrow.originatorBitcoinAddress === origin &&
-              escrow.destinationBitcoinAddress === destination &&
-              request.amount === BigInt(amount)
-              //todo blocktimestamp less than request expiry
-            ) {
-              await fulfillRequest(BigInt(0)); //await fulfillRequest(BigInt(index));//todo for index 0
+              if (
+                escrow.originatorBitcoinAddress === origin &&
+                escrow.destinationBitcoinAddress === destination &&
+                request.amount === BigInt(amount)
+                //todo blocktimestamp less than request expiry
+              ) {
+                await fulfillRequest(BigInt(0)); //await fulfillRequest(BigInt(index));//todo for index 0
 
-              await prisma.transactions.create({
-                data: {
-                  origin: escrow.originatorBitcoinAddress,
-                  request_number: Number(escrow.requestNumber),
-                  quote_number: Number(escrow.quoteNumber),
-                  amount: Number(amount),
-                  destination: escrow.destinationBitcoinAddress,
-                  expiry: Number(request.expiry),
-                  fulfilled: true,
-                },
-              });
+                await prisma.transactions.create({
+                  data: {
+                    origin: escrow.originatorBitcoinAddress,
+                    request_number: Number(escrow.requestNumber),
+                    quote_number: Number(escrow.quoteNumber),
+                    amount: Number(amount),
+                    destination: escrow.destinationBitcoinAddress,
+                    expiry: Number(request.expiry),
+                    fulfilled: true,
+                  },
+                });
+              }
             }
           }
         }
