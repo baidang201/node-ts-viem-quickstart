@@ -1,8 +1,5 @@
 import mempoolJS from '@mempool/mempool.js';
-import { Tx } from '@mempool/mempool.js/lib/interfaces/bitcoin/transactions';
-
 import { PrismaClient } from '@prisma/client';
-
 import { getEscrowCount, getEscrow, fulfillRequest, getRequest } from './eth';
 const prisma = new PrismaClient();
 
@@ -13,7 +10,9 @@ const {
   network: 'testnet',
 });
 
-const ws = websocket.wsInit();
+const ws = websocket.initServer({
+  options: ['blocks'],
+});
 
 ws.on('message', async function incoming(data: any) {
   const res = JSON.parse(data.toString());
@@ -48,7 +47,7 @@ ws.on('message', async function incoming(data: any) {
               request.amount === BigInt(amount)
               //todo blocktimestamp less than request expiry
             ) {
-              await fulfillRequest(BigInt(index));
+              await fulfillRequest(BigInt(0)); //await fulfillRequest(BigInt(index));//todo for index 0
 
               await prisma.transactions.create({
                 data: {
@@ -81,14 +80,14 @@ ws.on('message', async function incoming(data: any) {
   // }
 });
 
-async function main() {}
+// async function main() {}
 
-main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
-    console.error(e);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+// main()
+//   .then(async () => {
+//     await prisma.$disconnect();
+//   })
+//   .catch(async (e) => {
+//     console.error(e);
+//     await prisma.$disconnect();
+//     process.exit(1);
+//   });
