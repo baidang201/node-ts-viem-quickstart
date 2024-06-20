@@ -37,37 +37,70 @@ ws.on('message', async function incoming(data: any) {
           const amount = item.value;
 
           const count = await getEscrowCount();
-          //console.log('@@@ getEscrowCount ', count);
+          console.log('@@@ getEscrowCount ', count);
 
           for (let index = 0; index < count; index++) {
             const escrow = await getEscrow(BigInt(index));
-            //console.log('@@@ escrow ', escrow);
+            console.log('@@@ escrow ', escrow);
 
             const request = await getRequest(escrow.originatorBitcoinAddress, escrow.requestNumber);
-            //console.log('@@@ request ', request);
+            console.log('@@@ request ', request);
 
-            let encodeOriginatorBitcoinAddress = base58.encode(Buffer.from(escrow.originatorBitcoinAddress, 'hex'));
-            let encodeDestinationBitcoinAddress = base58.encode(Buffer.from(escrow.destinationBitcoinAddress, 'hex'));
+            console.log(
+              'res.block.timestamp < request.expiry',
+              res.block.timestamp,
+              request.expiry,
+              res.block.timestamp < request.expiry,
+            );
 
-            if (
-              encodeOriginatorBitcoinAddress === origin &&
-              encodeDestinationBitcoinAddress === destination &&
-              request.amount === BigInt(amount) &&
-              res.block.timestamp < request.expiry
-            ) {
-              await fulfillRequest(BigInt(index));
+            if (!escrow.fulfilled && !escrow.canceled && res.block.timestamp < request.expiry) {
+              const encodeOriginatorBitcoinAddress = base58.encode(
+                Buffer.from(escrow.originatorBitcoinAddress.replace(/^(0x)/, ''), 'hex'),
+              );
+              const encodeDestinationBitcoinAddress = base58.encode(
+                Buffer.from(escrow.destinationBitcoinAddress.replace(/^(0x)/, ''), 'hex'),
+              );
 
-              await prisma.transactions.create({
-                data: {
-                  origin: escrow.originatorBitcoinAddress,
-                  request_number: Number(escrow.requestNumber),
-                  quote_number: Number(escrow.quoteNumber),
-                  amount: Number(amount),
-                  destination: escrow.destinationBitcoinAddress,
-                  expiry: Number(request.expiry),
-                  fulfilled: true,
-                },
-              });
+              console.log(
+                'encodeOriginatorBitcoinAddress === origin',
+                encodeOriginatorBitcoinAddress,
+                origin,
+                encodeOriginatorBitcoinAddress === origin,
+              );
+              console.log(
+                'encodeDestinationBitcoinAddress === destination ',
+                encodeDestinationBitcoinAddress,
+                destination,
+                encodeDestinationBitcoinAddress === destination,
+              );
+              console.log(
+                'request.amount === BigInt(amount)',
+                request.amount,
+                BigInt(amount),
+                request.amount === BigInt(amount),
+              );
+
+              if (
+                encodeOriginatorBitcoinAddress === origin &&
+                encodeDestinationBitcoinAddress === destination &&
+                request.amount === BigInt(amount)
+              ) {
+                console.log('### in match');
+
+                await fulfillRequest(BigInt(index));
+
+                await prisma.transactions.create({
+                  data: {
+                    origin: escrow.originatorBitcoinAddress,
+                    request_number: Number(escrow.requestNumber),
+                    quote_number: Number(escrow.quoteNumber),
+                    amount: Number(amount),
+                    destination: escrow.destinationBitcoinAddress,
+                    expiry: Number(request.expiry),
+                    fulfilled: true,
+                  },
+                });
+              }
             }
           }
         }
