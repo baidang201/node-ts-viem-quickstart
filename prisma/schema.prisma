@@ -11,7 +11,7 @@ model transactions {
   origin         String
   request_number Int
   quote_number   Int
-  amount         Int
+  amount         BigInt
   destination    String
   expiry         Int
   fulfilled      Boolean @default(false)

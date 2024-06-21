@@ -81,24 +81,45 @@ ws.on('message', async function incoming(data: any) {
               );
 
               if (
+                origin &&
+                destination &&
                 encodeOriginatorBitcoinAddress === origin &&
                 encodeDestinationBitcoinAddress === destination &&
                 request.amount === BigInt(amount)
               ) {
                 console.log('### in match');
 
+                const tx = {
+                  origin: origin,
+                  request_number: Number(escrow.requestNumber),
+                  quote_number: Number(escrow.quoteNumber),
+                  amount: Number(amount),
+                  destination: destination,
+                  expiry: Number(request.expiry),
+                  fulfilled: true,
+                };
+
+                console.log('### tx is', tx);
+
+                const txInDb: object | null = await prisma.transactions.findUnique({
+                  where: {
+                    origin_request_number_quote_number: {
+                      origin: tx.origin,
+                      request_number: tx.request_number,
+                      quote_number: tx.quote_number,
+                    },
+                  },
+                });
+
+                if (txInDb) {
+                  console.log('### exist one', tx.origin, tx.request_number, tx.quote_number);
+                  continue;
+                }
+
                 await fulfillRequest(BigInt(index));
 
                 await prisma.transactions.create({
-                  data: {
-                    origin: escrow.originatorBitcoinAddress,
-                    request_number: Number(escrow.requestNumber),
-                    quote_number: Number(escrow.quoteNumber),
-                    amount: Number(amount),
-                    destination: escrow.destinationBitcoinAddress,
-                    expiry: Number(request.expiry),
-                    fulfilled: true,
-                  },
+                  data: tx,
                 });
               }
             }
