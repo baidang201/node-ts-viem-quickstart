@@ -213,3 +213,6 @@ fulfillRequest tx: 0xe21e0ab93734f3f407b30686aa5046ded233ef14d5ad4d6b9b53fce51e4
 
 # 19 check database
 ![alt text](image-2.png)
+
+# 20 check rfq contract
+![alt text](image-3.png)
