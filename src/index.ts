@@ -22,7 +22,7 @@ ws.on('message', async function incoming(data: any) {
     //console.log('@@@ res.block \n', res.block);
 
     const blockStatus = await blocks.getBlockStatus({ hash: res.block.id });
-    console.log('@@@ status', blockStatus);
+    console.log('@@@ status', blockStatus.height);
 
     const txCount = res.block.tx_count;
     const getBlockTxsStep = 25;
